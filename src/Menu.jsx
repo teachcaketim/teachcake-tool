@@ -99,9 +99,9 @@ export default function Menu() {
             </Box>
 
             <Box>
-                {orderItem === 'adjustOrder' && <AdjustOrder memberInfo={memberInfo} />}
+                {orderItem === 'adjustOrder' && <AdjustOrder memberInfo={memberInfo} appId={brand} />}
                 {orderItem === 'leave' && <Leave memberInfo={memberInfo} appId={brand} studentEmail={studentEmail} />}
-                {orderItem === 'extension' && <Extension memberInfo={memberInfo} />}
+                {orderItem === 'extension' && <Extension memberInfo={memberInfo} appId={brand} />}
             </Box>
 
             <Box sx={{

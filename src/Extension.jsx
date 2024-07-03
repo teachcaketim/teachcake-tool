@@ -41,7 +41,7 @@ function createData(orderNumber, startDate, name, email, orderProduct) {
 }
 
 function Row(props) {
-    const { row } = props;
+    const { row, appId } = props;
     const [open, setOpen] = React.useState(false);
     const [products, setProducts] = React.useState(row.orderProduct);
     const [loading, setLoading] = React.useState(false);
@@ -59,7 +59,7 @@ function Row(props) {
         try {
             for (const product of products) {
                 const variables = { id: product.id, endedAt: product.ended_at };
-                const gql = new GraphQL(UPDATE_ORDER_PRODUCT, variables);
+                const gql = new GraphQL(UPDATE_ORDER_PRODUCT, variables, appId);
                 await gql.execute();
             }
             setMessage('所有變更已成功保存');
@@ -141,7 +141,7 @@ function Row(props) {
 
 
 
-export default function Extension({ memberInfo }) {
+export default function Extension({ memberInfo, appId }) {
     console.log('-------------------', memberInfo)
     const rows = memberInfo ? memberInfo.map(member =>
         createData(
@@ -168,7 +168,7 @@ export default function Extension({ memberInfo }) {
                 </TableHead>
                 <TableBody>
                     {rows.map((row) => (
-                        <Row key={row.orderNumber} row={row} />
+                        <Row key={row.orderNumber} row={row} appId={appId} />
                     ))}
                 </TableBody>
             </Table>

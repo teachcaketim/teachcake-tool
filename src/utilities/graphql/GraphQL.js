@@ -1,35 +1,28 @@
-const secret = process.env.REACT_APP_PROD_SECRET;
-const graphQLEntry = process.env.REACT_APP_GRAPHQL_ENDPOINT;
+import { retrieveHasuraData } from '../api/api.js';
 
 class GraphQL {
-    constructor(query, variables) {
+    constructor(query, variables, appId) {
         this.query = query;
         const matches = query.match(/^(query|mutation)\s+(\w+)/);
         this.operationName = matches ? matches[2] : null;
         this.variables = variables;
-        this.payload = JSON.stringify({
+        this.payload = {
             operationName: this.operationName,
             query: this.query,
             variables: this.variables
-        });
-        this.parameters = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-hasura-admin-secret": secret
-            },
-            body: this.payload,
         };
+        this.appId = appId;
     }
+
     async execute() {
-        console.log(this.payload);
+        console.log(JSON.stringify(this.payload));
         try {
-            const response = await fetch(graphQLEntry, this.parameters);
-            const parsedResponse = await response.json();
-            if (parsedResponse.errors) {
-                throw new Error(JSON.stringify(parsedResponse.errors));
+            const getData = await retrieveHasuraData(this.appId);
+            const response = await getData(this.payload);
+            if (response.errors) {
+                throw new Error(JSON.stringify(response.errors));
             }
-            return parsedResponse.data;
+            return response.data;
         } catch (error) {
             console.error('Error fetching data:', error);
             throw error;
