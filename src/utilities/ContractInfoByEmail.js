@@ -1,42 +1,34 @@
-const secret = process.env.REACT_APP_PROD_SECRET;
-const graphQLEntry = process.env.REACT_APP_GRAPHQL_ENDPOINT;
+import { retrieveHasuraData } from './api/api.js';
 
 class GraphQL {
-  constructor(query, variables) {
+  constructor(query, variables, appId) {
     this.query = query;
     this.operationName = query.trim().split("\n")[0].match(/^(query|mutation)\s+(\w+)\(/)[2];
     this.variables = variables;
-    this.payload = JSON.stringify({
+    this.payload = {
       operationName: this.operationName,
       query: this.query,
       variables: this.variables
-    });
-    this.parameters = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-hasura-admin-secret": secret
-      },
-      body: this.payload,
-    }
+    };
+    this.appId = appId;
   }
 
   async execute() {
-    console.log(this.payload);
+    console.log(JSON.stringify(this.payload));
     try {
-      const response = await fetch(graphQLEntry, this.parameters);
-      const parsedResponse = await response.json(); // 解析 JSON
-      if (parsedResponse.data) {
-        return parsedResponse.data;
-      } else {
-        throw new Error(JSON.stringify(parsedResponse.errors));
+      const getData = await retrieveHasuraData(this.appId);
+      const response = await getData(this.payload);
+      if (response.errors) {
+        throw new Error(JSON.stringify(response.errors));
       }
+      return response.data;
     } catch (error) {
       console.error("Error fetching data: ", error);
       throw error;
     }
   }
 }
+
 
 const getHasuraMemberContractInfo = async (memberKey, type, memberValue, appId, requestColumnNames) => {
   console.log(`讀取會員資料。${memberKey}: ${memberValue}`);
@@ -56,7 +48,7 @@ const getHasuraMemberContractInfo = async (memberKey, type, memberValue, appId, 
     }`;
   let variable = { "appId": appId };
   variable[memberKey] = memberValue;
-  const connection = new GraphQL(query, variable);
+  const connection = new GraphQL(query, variable, appId);
   try {
     const response = await connection.execute();
     return response.member_contract.map(v => {
@@ -69,20 +61,19 @@ const getHasuraMemberContractInfo = async (memberKey, type, memberValue, appId, 
       v.member.contract_orderId = v.values.orderId;
       v.member.contract_invoice_email = v.values.invoice.email;
       v.member.contract_orderProducts = v.values.orderProducts;
-      v.member.order_id = v.values.orderId
+      v.member.order_id = v.values.orderId;
       return v.member;
     });
   } catch (e) {
     console.log(`讀取會員資料失敗。${e}`);
     throw e;  // 重新拋出錯誤以便調用者可以處理
   }
-}
-
+};
 
 const getHasuraMemberContractInfoByEmail = async (email, appId) => {
   // 正確的數據類型和異步處理
   return await getHasuraMemberContractInfo("email", "[String]", [email], appId, ["id", "name", "email", "app_id"]);
-}
-
+};
 
 export default getHasuraMemberContractInfoByEmail;
+

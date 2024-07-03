@@ -15,10 +15,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { TextField, Button } from '@mui/material';
 import { patchHasuraOrderProductsByMemberId } from './utilities/mutations';
-import { gql } from '@apollo/client';
-import client from './utilities/client';
-
-
+import { retrieveHasuraData } from './utilities/api/api.js';
 
 function formatDateUsingMoment(dateString) {
     return moment(dateString).format('YYYY-MM-DD HH:mm');
@@ -34,7 +31,7 @@ function createData(orderNumber, startDate, name, email, orderProduct) {
     };
 }
 
-const GET_ORDER_LOGS = gql`
+const GET_ORDER_LOGS = `
   query GET_ORDER_LOGS($id: String) {
     order_log(where: {id: {_eq: $id}}) {
       id
@@ -56,21 +53,19 @@ const GET_ORDER_LOGS = gql`
   }
 `;
 
-const fetchApiData = async (id, setApiData) => {
+const fetchApiData = async (id, setApiData, appId) => {
     try {
-        //console.log(`Fetching order logs for ID: ${id}`);
-        const { data } = await client.query({
+        const executeQuery = await retrieveHasuraData(appId);
+        const result = await executeQuery({
             query: GET_ORDER_LOGS,
             variables: { id },
         });
-        const orderProducts = data.order_log[0].order_products;
+        const orderProducts = result.data.order_log[0].order_products;
         setApiData(orderProducts);
-        //console.log(`Order logs fetched successfully: ${JSON.stringify(orderProducts)}`);
     } catch (error) {
         console.error('Error fetching API data:', error);
     }
 };
-
 
 function Row(props) {
     const { row, appId, studentEmail, refreshData } = props;
@@ -85,8 +80,8 @@ function Row(props) {
     const isAfterEnd = products.some(product => today <= new Date(product.ended_at));
 
     useEffect(() => {
-        fetchApiData(row.orderNumber, setApiData);
-    }, [row.orderNumber]);
+        fetchApiData(row.orderNumber, setApiData, appId);
+    }, [row.orderNumber, appId]);
 
     const handleSave = async () => {
         setLoading(true);
@@ -122,7 +117,7 @@ function Row(props) {
             setProducts(updatedProducts);
             setMessage('所有變更已成功保存');
             refreshData();
-            await fetchApiData(row.orderNumber, setApiData);
+            await fetchApiData(row.orderNumber, setApiData, appId);
         } catch (error) {
             console.error('Error details:', error);
             setMessage(`保存變更失敗：${error.message}`);
@@ -215,8 +210,6 @@ function Row(props) {
         </React.Fragment>
     );
 }
-
-
 
 export default function Leave({ memberInfo, appId, studentEmail }) {
     const [rows, setRows] = useState([]);
